@@ -4,9 +4,10 @@
   "description": "prisma centro medico",
   "type": "module",
   "scripts": {
-    "dev": "nodemon src/server.js"
+    "dev": "nodemon src/server.js",
+    "build": "prisma generate",
+    "start": "node src/server.js"
   },
-  "author": "",
   "license": "ISC",
   "dependencies": {
     "@prisma/client": "^5.22.0",
@@ -14,8 +15,11 @@
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
-    "jwks-rsa": "^3.2.0",
+    "jwks-rsa": "^3.2.0"
+  },
+  "devDependencies": {
     "nodemon": "^3.1.11",
     "prisma": "^5.22.0"
   }
 }
+
