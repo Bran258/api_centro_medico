@@ -6,8 +6,39 @@ import { requireRole } from "../middleware/role.middleware.js";
 const router = Router();
 
 /**
+ * ======================================================
+ * OBTENER ROL POR ID DE SUPABASE
+ * se usa al hacer login con Supabase
+ * NO lleva authMiddleware
+ * ======================================================
+ */
+router.get("/supabase/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const usuario = await prisma.usuarios.findUnique({
+      where: { id },
+      select: { role: true },
+    });
+
+    if (!usuario) {
+      return res.status(404).json({
+        message: "Usuario no registrado en el sistema",
+      });
+    }
+
+    res.json({ role: usuario.role });
+  } catch (error) {
+    console.error("Error obteniendo rol:", error);
+    res.status(500).json({ message: "Error interno" });
+  }
+});
+
+/**
+ * ======================================================
  * CREAR USUARIO (ADMIN)
  * id = UUID de Supabase Auth
+ * ======================================================
  */
 router.post(
   "/",
@@ -49,7 +80,9 @@ router.post(
 );
 
 /**
+ * ======================================================
  * LISTAR USUARIOS (ADMIN)
+ * ======================================================
  */
 router.get(
   "/",
@@ -72,7 +105,9 @@ router.get(
 );
 
 /**
+ * ======================================================
  * OBTENER USUARIO POR ID (ADMIN)
+ * ======================================================
  */
 router.get(
   "/:id",
@@ -101,7 +136,9 @@ router.get(
 );
 
 /**
+ * ======================================================
  * ACTUALIZAR USUARIO COMPLETO (ADMIN)
+ * ======================================================
  */
 router.put(
   "/:id",
@@ -140,7 +177,9 @@ router.put(
 );
 
 /**
+ * ======================================================
  * ACTUALIZAR SOLO ROL (ADMIN)
+ * ======================================================
  */
 router.put(
   "/:id/rol",
@@ -171,8 +210,9 @@ router.put(
 );
 
 /**
+ * ======================================================
  * ELIMINAR USUARIO (ADMIN)
- *
+ * ======================================================
  */
 router.delete(
   "/:id",
@@ -202,5 +242,3 @@ router.delete(
 );
 
 export default router;
-
-
