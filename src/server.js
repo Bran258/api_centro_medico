@@ -24,6 +24,12 @@ app.use("/api/historial", historiasRoutes);
 app.use("/api/clientes", clientesRoutes);
 app.use("/api/contacto", contactoRoutes);
 
+
+// FAVICON (EVITA CRASH)
+app.get("/favicon.ico", (req, res) => res.status(204).end());
+app.get("/favicon.png", (req, res) => res.status(204).end());
+
+
 // app.listen(3000, () => {
 //   console.log("API Centro Médico activa en puerto 3000");
 // });
