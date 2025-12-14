@@ -1,0 +1,170 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+
+
+//////////////////////////////////////////////////////
+// ENUMS
+//////////////////////////////////////////////////////
+
+enum rol_usuario {
+  admin
+  asistente
+}
+
+enum estado_cita {
+  pendiente
+  confirmada
+  cancelada
+  atendida
+}
+
+//////////////////////////////////////////////////////
+// MODELOS
+//////////////////////////////////////////////////////
+
+// ==============================
+// PERSONAS (SOLO SISTEMA INTERNO)
+// Admin, Asistente, Médico
+// ==============================
+model Personas {
+  id         Int      @id @default(autoincrement())
+  nombres    String
+  apellidos  String
+  telefono   String?
+  dni        String?  @unique
+  created_at DateTime @default(now())
+
+  usuario Usuarios?
+  medico  Medicos?
+
+  @@map("personas")
+}
+
+// ==============================
+// USUARIOS (SUPABASE AUTH)
+// ==============================
+model Usuarios {
+  id         String   @id               // UUID string
+  persona_id Int      @unique
+  role       rol_usuario
+  created_at DateTime @default(now())
+
+  persona Personas @relation(fields: [persona_id], references: [id], onDelete: Cascade)
+
+  @@map("usuarios")
+}
+
+
+// ==============================
+// CLIENTES PUBLICOS (SIN AUTH)
+// ==============================
+model Clientes_publicos {
+  id         Int      @id @default(autoincrement())
+  nombres    String
+  apellidos  String?
+  telefono   String?
+  email      String?
+  created_at DateTime @default(now())
+
+  citas     Citas[]
+  contactos Contacto[]
+
+  @@map("clientes_publicos")
+}
+
+// ==============================
+// ESPECIALIDADES
+// ==============================
+model Especialidades {
+  id          Int      @id @default(autoincrement())
+  nombre      String   @unique
+  descripcion String?
+  created_at  DateTime @default(now())
+
+  medicos Medicos[]
+
+  @@map("especialidades")
+}
+
+// ==============================
+// MEDICOS (NO SE AUTENTICAN)
+// ==============================
+model Medicos {
+  id              Int      @id @default(autoincrement())
+  persona_id      Int      @unique
+  especialidad_id Int
+  email           String   @unique
+  colegiatura     String?
+  activo          Boolean  @default(true)
+  created_at      DateTime @default(now())
+
+  persona      Personas       @relation(fields: [persona_id], references: [id], onDelete: Cascade)
+  especialidad Especialidades @relation(fields: [especialidad_id], references: [id])
+  citas        Citas[]
+
+  @@map("medicos")
+}
+
+// ==============================
+// CONTACTANOS (PUBLICO)
+// ==============================
+model Contacto {
+  id         Int      @id @default(autoincrement())
+  cliente_id Int
+  mensaje    String
+  created_at DateTime @default(now())
+
+  cliente Clientes_publicos @relation(fields: [cliente_id], references: [id], onDelete: Cascade)
+
+  @@map("contacto")
+}
+
+// ==============================
+// CITAS (SOLICITUD → ASIGNACION)
+// ==============================
+model Citas {
+  id                  Int         @id @default(autoincrement())
+
+  cliente_id           Int
+
+  // lo que envía el frontend
+  fecha_solicitada     DateTime    @db.Date
+  hora_solicitada      DateTime    @db.Time
+
+  // lo que define el asistente
+  fecha_confirmada     DateTime?   @db.Date
+  hora_confirmada      DateTime?   @db.Time
+
+  medico_id            Int?
+  sintomas             String?
+
+  estado               estado_cita @default(pendiente)
+  created_at           DateTime    @default(now())
+
+  cliente Clientes_publicos @relation(fields: [cliente_id], references: [id], onDelete: Cascade)
+  medico  Medicos?          @relation(fields: [medico_id], references: [id])
+  historial Historial[]
+
+  @@map("citas")
+}
+
+// ==============================
+// HISTORIAL (INTERNO)
+// ==============================
+model Historial {
+  id         Int      @id @default(autoincrement())
+  cita_id    Int
+  notas      String?
+  created_at DateTime @default(now())
+
+  cita Citas @relation(fields: [cita_id], references: [id], onDelete: Cascade)
+
+  @@map("historial")
+}
