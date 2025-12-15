@@ -2,12 +2,12 @@ import { Router } from "express";
 import prisma from "../prisma.js";
 import { authMiddleware } from "../middleware/auth.middleware.js";
 import { requireRole } from "../middleware/role.middleware.js";
+import { actualizarFotoPersona } from "../controllers/personas.controller.js";
 
 const router = Router();
 
 /**
  * CREAR PERSONA (ADMIN)
- * - Si el DNI existe, devuelve la persona existente
  */
 router.post(
   "/",
@@ -41,120 +41,92 @@ router.post(
         persona,
       });
     } catch (error) {
-      console.error(error);
       res.status(500).json({ message: "Error al crear persona" });
     }
   }
 );
 
 /**
- * LISTAR TODAS LAS PERSONAS (ADMIN)
+ * LISTAR PERSONAS (ADMIN)
  */
 router.get(
   "/",
   authMiddleware,
   requireRole("admin"),
   async (req, res) => {
-    try {
-      const personas = await prisma.personas.findMany({
-        orderBy: { id: "desc" },
-      });
-      res.json(personas);
-    } catch (error) {
-      res.status(500).json({ message: "Error al obtener personas" });
-    }
+    const personas = await prisma.personas.findMany({
+      orderBy: { id: "desc" },
+    });
+    res.json(personas);
   }
 );
 
 /**
- * OBTENER PERSONA POR ID (ADMIN)
+ * OBTENER PERSONA POR ID
  */
 router.get(
   "/:id",
   authMiddleware,
   requireRole("admin"),
   async (req, res) => {
-    try {
-      const id = Number(req.params.id);
+    const persona = await prisma.personas.findUnique({
+      where: { id: Number(req.params.id) },
+    });
 
-      const persona = await prisma.personas.findUnique({
-        where: { id },
-      });
-
-      if (!persona) {
-        return res.status(404).json({ message: "Persona no encontrada" });
-      }
-
-      res.json(persona);
-    } catch (error) {
-      res.status(500).json({ message: "Error al obtener persona" });
+    if (!persona) {
+      return res.status(404).json({ message: "Persona no encontrada" });
     }
+
+    res.json(persona);
   }
 );
 
 /**
- * ACTUALIZAR PERSONA (ADMIN)
+ * ACTUALIZAR PERSONA
  */
 router.put(
   "/:id",
   authMiddleware,
   requireRole("admin"),
   async (req, res) => {
-    try {
-      const id = Number(req.params.id);
+    const id = Number(req.params.id);
 
-      const persona = await prisma.personas.findUnique({
-        where: { id },
-      });
+    const persona = await prisma.personas.update({
+      where: { id },
+      data: req.body,
+    });
 
-      if (!persona) {
-        return res.status(404).json({ message: "Persona no encontrada" });
-      }
-
-      const actualizada = await prisma.personas.update({
-        where: { id },
-        data: req.body,
-      });
-
-      res.json({
-        message: "Persona actualizada",
-        persona: actualizada,
-      });
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: "Error al actualizar persona" });
-    }
+    res.json({
+      message: "Persona actualizada",
+      persona,
+    });
   }
 );
 
 /**
- * ELIMINAR PERSONA (ADMIN)
+ * ACTUALIZAR FOTO DE PERFIL
+ * (ADMIN y ASISTENTE pueden cambiar su foto)
+ */
+router.put(
+  "/:id/foto",
+  authMiddleware,
+  requireRole("admin", "asistente"),
+  actualizarFotoPersona
+);
+
+/**
+ * ELIMINAR PERSONA
  */
 router.delete(
   "/:id",
   authMiddleware,
   requireRole("admin"),
   async (req, res) => {
-    try {
-      const id = Number(req.params.id);
+    await prisma.personas.delete({
+      where: { id: Number(req.params.id) },
+    });
 
-      const persona = await prisma.personas.findUnique({
-        where: { id },
-      });
-
-      if (!persona) {
-        return res.status(404).json({ message: "Persona no encontrada" });
-      }
-
-      await prisma.personas.delete({
-        where: { id },
-      });
-
-      res.json({ message: "Persona eliminada correctamente" });
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: "Error al eliminar persona" });
-    }
+    res.json({ message: "Persona eliminada correctamente" });
   }
 );
 
