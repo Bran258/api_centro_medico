@@ -2,8 +2,9 @@ import { Router } from "express";
 import { authMiddleware } from "../middleware/auth.middleware.js";
 import { requireRole } from "../middleware/role.middleware.js";
 import {
+  listarMedicosPublicos,
+  listarMedicosAdmin,
   crearMedico,
-  listarMedicos,
   actualizarMedico,
   eliminarMedico,
 } from "../controllers/medicos.controller.js";
@@ -12,16 +13,23 @@ const router = Router();
 
 /**
  * ==============================
- * LISTAR MÉDICOS (PÚBLICO)
+ * PÚBLICO
  * ==============================
  */
-router.get("/", listarMedicos);
+router.get("/public", listarMedicosPublicos);
 
 /**
  * ==============================
- * CREAR MÉDICO (ADMIN)
+ * ADMIN
  * ==============================
  */
+router.get(
+  "/",
+  authMiddleware,
+  requireRole("admin"),
+  listarMedicosAdmin
+);
+
 router.post(
   "/",
   authMiddleware,
@@ -29,11 +37,6 @@ router.post(
   crearMedico
 );
 
-/**
- * ==============================
- * ACTUALIZAR MÉDICO (ADMIN)
- * ==============================
- */
 router.put(
   "/:id",
   authMiddleware,
@@ -41,11 +44,6 @@ router.put(
   actualizarMedico
 );
 
-/**
- * ==============================
- * ELIMINAR MÉDICO (ADMIN)
- * ==============================
- */
 router.delete(
   "/:id",
   authMiddleware,

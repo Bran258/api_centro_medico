@@ -4,8 +4,9 @@ import prisma from "../prisma.js";
  * ==============================
  * LISTAR MÉDICOS (PÚBLICO)
  * ==============================
+ * SOLO ACTIVOS
  */
-export async function listarMedicos(req, res) {
+export async function listarMedicosPublicos(req, res) {
   try {
     const medicos = await prisma.medicos.findMany({
       where: { activo: true },
@@ -18,18 +19,44 @@ export async function listarMedicos(req, res) {
           },
         },
         especialidad: {
-          select: {
-            nombre: true,
-          },
+          select: { nombre: true },
         },
       },
-      orderBy: {
-        id: "asc",
-      },
+      orderBy: { id: "asc" },
     });
 
     res.json(medicos);
-  } catch (error) {
+  } catch {
+    res.status(500).json({ message: "Error al listar médicos" });
+  }
+}
+
+/**
+ * ==============================
+ * LISTAR MÉDICOS (ADMIN)
+ * ==============================
+ * ACTIVOS + INACTIVOS
+ */
+export async function listarMedicosAdmin(req, res) {
+  try {
+    const medicos = await prisma.medicos.findMany({
+      include: {
+        persona: {
+          select: {
+            nombres: true,
+            apellidos: true,
+            telefono: true,
+          },
+        },
+        especialidad: {
+          select: { nombre: true },
+        },
+      },
+      orderBy: { id: "asc" },
+    });
+
+    res.json(medicos);
+  } catch {
     res.status(500).json({ message: "Error al listar médicos" });
   }
 }
@@ -49,13 +76,28 @@ export async function crearMedico(req, res) {
   }
 
   try {
-    // Validar persona existente
     const persona = await prisma.personas.findUnique({
       where: { id: persona_id },
+      include: {
+        usuario: true,
+        medico: true,
+      },
     });
 
     if (!persona) {
       return res.status(404).json({ message: "Persona no existe" });
+    }
+
+    if (persona.usuario) {
+      return res.status(400).json({
+        message: "La persona tiene un rol de usuario y no puede ser médico",
+      });
+    }
+
+    if (persona.medico) {
+      return res.status(409).json({
+        message: "La persona ya está registrada como médico",
+      });
     }
 
     const medico = await prisma.medicos.create({
@@ -71,7 +113,7 @@ export async function crearMedico(req, res) {
   } catch (error) {
     if (error.code === "P2002") {
       return res.status(409).json({
-        message: "El médico ya existe (email o persona duplicada)",
+        message: "Email o persona duplicada",
       });
     }
 
@@ -117,9 +159,8 @@ export async function actualizarMedico(req, res) {
 
 /**
  * ==============================
- * ELIMINAR MÉDICO (ADMIN)
+ * DESACTIVAR MÉDICO (ADMIN)
  * ==============================
- * 
  */
 export async function eliminarMedico(req, res) {
   const id = Number(req.params.id);
@@ -139,5 +180,3 @@ export async function eliminarMedico(req, res) {
     res.status(500).json({ message: "Error al eliminar médico" });
   }
 }
-
-
