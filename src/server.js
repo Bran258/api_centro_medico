@@ -10,6 +10,7 @@ import clientesRoutes from "./routes/clientes.routes.js";
 import contactoRoutes from "./routes/contacto.routes.js";
 import historiasRoutes from "./routes/historialCitas.routes.js";
 import adminAuthRoutes from "./routes/adminAuth.routes.js";
+import dashboardRoutes from "./routes/dashboard.routes.js";
 
 
 const app = express();
@@ -26,6 +27,7 @@ app.use("/api/historial", historiasRoutes);
 app.use("/api/clientes", clientesRoutes);
 app.use("/api/contacto", contactoRoutes);
 app.use("/api/admin-auth", adminAuthRoutes);
+app.use("/api/dashboard", dashboardRoutes);
 
 // FAVICON (EVITA CRASH)
 app.get("/favicon.ico", (req, res) => res.status(204).end());
