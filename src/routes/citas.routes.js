@@ -135,31 +135,33 @@ router.put(
   async (req, res) => {
     try {
       const id = Number(req.params.id);
-      const { medico_id, fecha_confirmada, hora_confirmada } = req.body;
+      const { medico_id } = req.body;
 
-      if (!medico_id || !fecha_confirmada || !hora_confirmada) {
+      if (!medico_id) {
         return res.status(400).json({
-          message: "Datos obligatorios para confirmar la cita",
+          message: "medico_id es obligatorio",
         });
       }
 
       const cita = await prisma.citas.update({
         where: { id },
         data: {
-          medico_id,
-          fecha_confirmada: new Date(`${fecha_confirmada}T00:00:00`),
-          hora_confirmada: new Date(`1970-01-01T${hora_confirmada}:00`),
+          medico_id: Number(medico_id),
           estado: "confirmada",
+          fecha_confirmada: new Date(), // SOLO DATE
+          hora_confirmada: new Date(),  // SOLO TIME
         },
       });
 
       res.json({
-        message: "Cita confirmada y médico asignado",
+        message: "Cita confirmada correctamente",
         cita,
       });
     } catch (error) {
       console.error(error);
-      res.status(500).json({ message: "Error al confirmar cita" });
+      res.status(500).json({
+        message: "Error al confirmar cita",
+      });
     }
   }
 );
