@@ -166,6 +166,49 @@ router.put(
   }
 );
 
+router.put(
+  "/:id/atender",
+  authMiddleware,
+  requireRole("admin", "asistente"),
+  async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+
+      const cita = await prisma.citas.findUnique({
+        where: { id },
+      });
+
+      if (!cita) {
+        return res.status(404).json({ message: "Cita no encontrada" });
+      }
+
+      if (cita.estado !== "confirmada") {
+        return res.status(400).json({
+          message: "Solo se pueden atender citas confirmadas",
+        });
+      }
+
+      const actualizada = await prisma.citas.update({
+        where: { id },
+        data: {
+          estado: "atendida",
+        },
+      });
+
+      res.json({
+        message: "Cita marcada como atendida",
+        cita: actualizada,
+      });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({
+        message: "Error al marcar cita como atendida",
+      });
+    }
+  }
+);
+
+
 /**
  * CANCELAR CITA – ADMIN / ASISTENTE
  */
