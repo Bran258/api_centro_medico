@@ -7,37 +7,54 @@ const router = Router();
 
 /**
  * CREAR CITA – PÚBLICO
+ * (crea cliente público + cita)
  */
 router.post("/", async (req, res) => {
   try {
     const {
-      cliente_id,
+      nombres,
+      apellidos,
+      telefono,
+      email,
       fecha_solicitada,
       hora_solicitada,
       sintomas,
     } = req.body;
 
-    if (!fecha_solicitada || !hora_solicitada) {
-      return res.status(400).json({ message: "Fecha y hora son obligatorias" });
+    if (!nombres || !telefono || !fecha_solicitada || !hora_solicitada) {
+      return res.status(400).json({
+        message: "Datos obligatorios incompletos",
+      });
     }
 
+    // 1. Crear cliente público
+    const cliente = await prisma.clientes_publicos.create({
+      data: {
+        nombres,
+        apellidos: apellidos || null,
+        telefono,
+        email: email || null,
+      },
+    });
+
+    // 2. Crear cita
     const cita = await prisma.citas.create({
       data: {
-        cliente_id: cliente_id || null,
-        fecha_solicitada: new Date(`${fecha_solicitada}T00:00:00Z`),
-        hora_solicitada: new Date(`1970-01-01T${hora_solicitada}:00Z`),
-        sintomas,
+        cliente_id: cliente.id,
+        fecha_solicitada: new Date(`${fecha_solicitada}T00:00:00`),
+        hora_solicitada: new Date(`1970-01-01T${hora_solicitada}:00`),
+        sintomas: sintomas || null,
         estado: "pendiente",
       },
     });
 
     res.status(201).json({
-      message: "Cita solicitada",
+      message: "Cita registrada",
       cita,
     });
   } catch (error) {
     console.error(error);
-    res.status(400).json({ message: "Error al crear cita" });
+    res.status(500).json({ message: "Error al registrar cita" });
   }
 });
 
