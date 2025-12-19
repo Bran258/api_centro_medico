@@ -7,7 +7,7 @@ const router = Router();
 
 /**
  * CREAR CITA – PÚBLICO
- * (crea cliente público + cita)
+ * Crea cliente público + cita en estado PENDIENTE
  */
 router.post("/", async (req, res) => {
   try {
@@ -30,10 +30,10 @@ router.post("/", async (req, res) => {
     // 1. Crear cliente público
     const cliente = await prisma.clientes_publicos.create({
       data: {
-        nombres,
-        apellidos: apellidos || null,
+        nombres: nombres.trim(),
+        apellidos: apellidos?.trim() || null,
         telefono,
-        email: email || null,
+        email: email?.trim() || null,
       },
     });
 
@@ -43,7 +43,7 @@ router.post("/", async (req, res) => {
         cliente_id: cliente.id,
         fecha_solicitada: new Date(`${fecha_solicitada}T00:00:00`),
         hora_solicitada: new Date(`1970-01-01T${hora_solicitada}:00`),
-        sintomas: sintomas || null,
+        sintomas: sintomas?.trim() || null,
         estado: "pendiente",
       },
     });
@@ -71,7 +71,10 @@ router.get(
         include: {
           cliente: true,
           medico: {
-            include: { especialidad: true },
+            include: {
+              persona: true,
+              especialidad: true,
+            },
           },
         },
         orderBy: { fecha_solicitada: "asc" },
@@ -79,6 +82,7 @@ router.get(
 
       res.json(citas);
     } catch (error) {
+      console.error(error);
       res.status(500).json({ message: "Error al listar citas" });
     }
   }
@@ -100,7 +104,10 @@ router.get(
         include: {
           cliente: true,
           medico: {
-            include: { especialidad: true },
+            include: {
+              persona: true,
+              especialidad: true,
+            },
           },
         },
       });
@@ -111,48 +118,15 @@ router.get(
 
       res.json(cita);
     } catch (error) {
+      console.error(error);
       res.status(500).json({ message: "Error al obtener cita" });
     }
   }
 );
 
 /**
- * ACTUALIZAR CITA – ADMIN / ASISTENTE
- */
-router.put(
-  "/:id",
-  authMiddleware,
-  requireRole("admin", "asistente"),
-  async (req, res) => {
-    try {
-      const id = Number(req.params.id);
-
-      const existe = await prisma.citas.findUnique({
-        where: { id },
-      });
-
-      if (!existe) {
-        return res.status(404).json({ message: "Cita no encontrada" });
-      }
-
-      const cita = await prisma.citas.update({
-        where: { id },
-        data: req.body,
-      });
-
-      res.json({
-        message: "Cita actualizada",
-        cita,
-      });
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: "Error al actualizar cita" });
-    }
-  }
-);
-
-/**
  * CONFIRMAR / ASIGNAR CITA – ADMIN / ASISTENTE
+ * Aquí se vincula la cita con el MÉDICO
  */
 router.put(
   "/:id/confirmar",
@@ -161,20 +135,30 @@ router.put(
   async (req, res) => {
     try {
       const id = Number(req.params.id);
+      const { medico_id, fecha_confirmada, hora_confirmada } = req.body;
+
+      if (!medico_id || !fecha_confirmada || !hora_confirmada) {
+        return res.status(400).json({
+          message: "Datos obligatorios para confirmar la cita",
+        });
+      }
 
       const cita = await prisma.citas.update({
         where: { id },
         data: {
-          ...req.body,
+          medico_id,
+          fecha_confirmada: new Date(`${fecha_confirmada}T00:00:00`),
+          hora_confirmada: new Date(`1970-01-01T${hora_confirmada}:00`),
           estado: "confirmada",
         },
       });
 
       res.json({
-        message: "Cita confirmada",
+        message: "Cita confirmada y médico asignado",
         cita,
       });
     } catch (error) {
+      console.error(error);
       res.status(500).json({ message: "Error al confirmar cita" });
     }
   }
@@ -195,6 +179,7 @@ router.put(
         where: { id },
         data: {
           estado: "cancelada",
+          medico_id: null,
         },
       });
 
@@ -203,13 +188,14 @@ router.put(
         cita,
       });
     } catch (error) {
+      console.error(error);
       res.status(500).json({ message: "Error al cancelar cita" });
     }
   }
 );
 
 /**
- * ELIMINAR CITA – ADMIN
+ * ELIMINAR CITA – SOLO ADMIN
  */
 router.delete(
   "/:id",
@@ -225,6 +211,7 @@ router.delete(
 
       res.json({ message: "Cita eliminada correctamente" });
     } catch (error) {
+      console.error(error);
       res.status(500).json({ message: "Error al eliminar cita" });
     }
   }
