@@ -61,6 +61,36 @@ router.get(
   }
 );
 
+router.put(
+  "/me",
+  authMiddleware,
+  requireRole("admin", "asistente"),
+  async (req, res) => {
+    try {
+      const userId = req.user.id;
+
+      const usuario = await prisma.usuarios.findUnique({
+        where: { id: userId },
+        include: { persona: true },
+      });
+
+      if (!usuario?.persona) {
+        return res.status(404).json({ message: "Persona no encontrada" });
+      }
+
+      const persona = await prisma.personas.update({
+        where: { id: usuario.persona.id },
+        data: req.body,
+      });
+
+      res.json(persona);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: "Error al actualizar perfil" });
+    }
+  }
+);
+
 /**
  * OBTENER PERSONA POR ID
  */
