@@ -7,7 +7,6 @@ const router = Router();
 
 /**
  * CREATE – REGISTRAR HISTORIAL
- * ADMIN / ASISTENTE
  */
 router.post(
   "/",
@@ -25,15 +24,12 @@ router.post(
         data: {
           cita_id,
           medico_id: medico_id || null,
-          diagnostico,
-          observaciones,
+          diagnostico: diagnostico || null,
+          observaciones: observaciones || null,
         },
       });
 
-      res.status(201).json({
-        message: "Historial registrado",
-        historial,
-      });
+      res.status(201).json({ historial });
     } catch (error) {
       console.error(error);
       res.status(500).json({ message: "Error al crear historial" });
@@ -42,8 +38,7 @@ router.post(
 );
 
 /**
- * READ – LISTAR TODO EL HISTORIAL
- * ADMIN / ASISTENTE
+ * READ – LISTAR TODO
  */
 router.get(
   "/",
@@ -65,14 +60,14 @@ router.get(
 
       res.json(historial);
     } catch (error) {
+      console.error(error);
       res.status(500).json({ message: "Error al listar historial" });
     }
   }
 );
 
 /**
- * READ – HISTORIAL POR ID
- * ADMIN / ASISTENTE
+ * READ – POR ID
  */
 router.get(
   "/:id",
@@ -85,7 +80,12 @@ router.get(
       const historial = await prisma.historial_citas.findUnique({
         where: { id },
         include: {
-          cita: true,
+          cita: {
+            include: {
+              cliente: true,
+              medico: true,
+            },
+          },
         },
       });
 
@@ -95,13 +95,14 @@ router.get(
 
       res.json(historial);
     } catch (error) {
+      console.error(error);
       res.status(500).json({ message: "Error al obtener historial" });
     }
   }
 );
 
 /**
- * READ – HISTORIAL POR CITA
+ * READ – POR CITA
  */
 router.get(
   "/cita/:cita_id",
@@ -118,13 +119,14 @@ router.get(
 
       res.json(historial);
     } catch (error) {
+      console.error(error);
       res.status(500).json({ message: "Error al obtener historial por cita" });
     }
   }
 );
 
 /**
- * READ – HISTORIAL POR CLIENTE
+ * READ – POR CLIENTE
  */
 router.get(
   "/cliente/:cliente_id",
@@ -139,13 +141,19 @@ router.get(
           cita: { cliente_id },
         },
         include: {
-          cita: true,
+          cita: {
+            include: {
+              cliente: true,
+              medico: true,
+            },
+          },
         },
         orderBy: { created_at: "desc" },
       });
 
       res.json(historial);
     } catch (error) {
+      console.error(error);
       res.status(500).json({ message: "Error al obtener historial del cliente" });
     }
   }
@@ -153,14 +161,13 @@ router.get(
 
 /**
  * UPDATE – BLOQUEADO
- * El historial NO se modifica
  */
 router.put(
   "/:id",
   authMiddleware,
   requireRole("admin"),
   async (req, res) => {
-    return res.status(403).json({
+    res.status(403).json({
       message: "El historial clínico no se puede modificar",
     });
   }
@@ -168,14 +175,13 @@ router.put(
 
 /**
  * DELETE – BLOQUEADO
- * El historial NO se elimina
  */
 router.delete(
   "/:id",
   authMiddleware,
   requireRole("admin"),
   async (req, res) => {
-    return res.status(403).json({
+    res.status(403).json({
       message: "El historial clínico no se puede eliminar",
     });
   }
