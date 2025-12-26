@@ -112,31 +112,28 @@ router.get(
 router.get(
   "/me",
   authMiddleware,
+  requireRole("admin", "asistente"),
   async (req, res) => {
     try {
+      // req.user.id debe venir del authMiddleware (supabase user id)
+      const userId = req.user.id;
+
       const usuario = await prisma.usuarios.findUnique({
-        where: { id: req.user.id },
-        include: {
-          persona: true,
-        },
+        where: { id: userId },
+        include: { persona: true },
       });
 
       if (!usuario) {
-        return res.status(404).json({
-          message: "Usuario no encontrado",
-        });
+        return res.status(404).json({ message: "Usuario no encontrado" });
       }
 
       res.json(usuario);
     } catch (error) {
-      console.error("GET /usuarios/me:", error);
-      res.status(500).json({
-        message: "Error al obtener perfil",
-      });
+      console.error(error);
+      res.status(500).json({ message: "Error al obtener perfil" });
     }
   }
 );
-
 
 /**
  * ======================================================
