@@ -106,6 +106,40 @@ router.get(
 
 /**
  * ======================================================
+ * OBTENER MI PERFIL (ADMIN / ASISTENTE)
+ * ======================================================
+ */
+router.get(
+  "/me",
+  authMiddleware,
+  async (req, res) => {
+    try {
+      const usuario = await prisma.usuarios.findUnique({
+        where: { id: req.user.id },
+        include: {
+          persona: true,
+        },
+      });
+
+      if (!usuario) {
+        return res.status(404).json({
+          message: "Usuario no encontrado",
+        });
+      }
+
+      res.json(usuario);
+    } catch (error) {
+      console.error("GET /usuarios/me:", error);
+      res.status(500).json({
+        message: "Error al obtener perfil",
+      });
+    }
+  }
+);
+
+
+/**
+ * ======================================================
  * OBTENER USUARIO POR ID (ADMIN)
  * ======================================================
  */
