@@ -89,6 +89,53 @@ router.get(
 );
 
 /**
+ * BUSCAR CITAS POR PACIENTE
+ * ADMIN / ASISTENTE
+ */
+
+router.get(
+  "/buscar",
+  authMiddleware,
+  requireRole("admin", "asistente"),
+  async (req, res) => {
+    try {
+      const { q } = req.query;
+
+      if (!q || !q.trim()) {
+        return res.json([]);
+      }
+
+      const citas = await prisma.citas.findMany({
+        where: {
+          cliente: {
+            OR: [
+              { nombres: { contains: q, mode: "insensitive" } },
+              { apellidos: { contains: q, mode: "insensitive" } },
+            ],
+          },
+        },
+        include: {
+          cliente: true,
+          medico: {
+            include: {
+              persona: true,
+            },
+          },
+        },
+        orderBy: { created_at: "desc" },
+        take: 10,
+      });
+
+      res.json(citas);
+    } catch (error) {
+      console.error("BUSCAR CITAS:", error);
+      res.status(500).json({ message: "Error al buscar citas" });
+    }
+  }
+);
+
+
+/**
  * OBTENER CITA POR ID – ADMIN / ASISTENTE
  */
 router.get(
@@ -162,47 +209,6 @@ router.put(
       res.status(500).json({
         message: "Error al confirmar cita",
       });
-    }
-  }
-);
-
-router.get(
-  "/buscar",
-  authMiddleware,
-  requireRole("admin", "asistente"),
-  async (req, res) => {
-    try {
-      const { q } = req.query;
-
-      if (!q || !q.trim()) {
-        return res.json([]);
-      }
-
-      const citas = await prisma.citas.findMany({
-        where: {
-          cliente: {
-            OR: [
-              { nombres: { contains: q, mode: "insensitive" } },
-              { apellidos: { contains: q, mode: "insensitive" } },
-            ],
-          },
-        },
-        include: {
-          cliente: true,
-          medico: {
-            include: {
-              persona: true,
-            },
-          },
-        },
-        orderBy: { created_at: "desc" },
-        take: 10,
-      });
-
-      res.json(citas);
-    } catch (error) {
-      console.error("BUSCAR CITAS:", error);
-      res.status(500).json({ message: "Error al buscar citas" });
     }
   }
 );
